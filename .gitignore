@@ -1,5 +1,8 @@
 node_modules/
 dist/
+*.tsbuildinfo
+playwright-report/
+test-results/
 .env
 .DS_Store
 /README.md

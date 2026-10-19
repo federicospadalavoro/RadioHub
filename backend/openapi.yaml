@@ -1,0 +1,424 @@
+openapi: 3.1.0
+info:
+  title: RadioHub API
+  version: 1.0.0
+  description: API del backend RadioHub per radio, notizie, account e preferiti.
+servers:
+  - url: http://localhost:3000
+    description: Backend locale
+tags:
+  - name: Stato
+  - name: Radio
+  - name: Notizie
+  - name: Account
+  - name: Preferiti
+paths:
+  /api/health:
+    get:
+      tags: [Stato]
+      summary: Verifica che il backend risponda
+      responses:
+        "200":
+          description: Backend attivo (non verifica la connessione ai database)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, const: OK }
+                required: [status]
+                example: { status: OK }
+
+  /api/radios:
+    get:
+      tags: [Radio]
+      summary: Cerca radio su FM-World
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string, minLength: 1 }
+          example: Radio 105
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        "200":
+          description: Radio trovate con stream audio utilizzabile
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Radio" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500":
+          description: Token FM-World non configurato
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+        "504":
+          description: Timeout di FM-World
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/radios/interpret:
+    post:
+      tags: [Radio]
+      summary: Converte una richiesta testuale in parametri di ricerca radio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt: { type: string, minLength: 1, maxLength: 500 }
+            example: { prompt: "Cerca rock italiano" }
+      responses:
+        "200":
+          description: Parametri di ricerca generati
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [query, limit]
+                properties:
+                  query: { type: string }
+                  limit: { type: integer, minimum: 1, maximum: 50 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+        "503":
+          description: Ricerca AI non configurata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/posts:
+    get:
+      tags: [Notizie]
+      summary: Legge le notizie salvate, filtrate per titolo
+      parameters:
+        - name: title
+          in: query
+          schema: { type: string }
+          description: Filtro testuale senza distinzione tra maiuscole e minuscole
+        - name: items
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+          description: Numero massimo di post da restituire
+      responses:
+        "200":
+          description: Notizie ordinate dalla più recente
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PostSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/posts/events:
+    get:
+      tags: [Notizie]
+      summary: Riceve eventi quando vengono importati nuovi post
+      description: Connessione Server-Sent Events. Invia eventi `news` e commenti heartbeat.
+      responses:
+        "200":
+          description: Stream di eventi mantenuto aperto
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /api/news/ask:
+    post:
+      tags: [Notizie]
+      summary: Risponde a una domanda usando le notizie salvate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string, minLength: 1, maxLength: 500 }
+            example: { question: "Quali novità ci sono sulla radio?" }
+      responses:
+        "200":
+          description: Risposta e notizie usate come fonti
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NewsAnswer" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+
+  /api/sync:
+    post:
+      tags: [Notizie]
+      summary: Avvia manualmente la sincronizzazione del feed notizie
+      responses:
+        "200":
+          description: Risultato della sincronizzazione
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [received, inserted, updated, summarized]
+                properties:
+                  received: { type: integer }
+                  inserted: { type: integer }
+                  updated: { type: integer }
+                  summarized: { type: integer }
+        "409":
+          description: Sincronizzazione già in corso
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/auth/register:
+    post:
+      tags: [Account]
+      summary: Registra un account e apre una sessione
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Credentials" }
+      responses:
+        "201":
+          description: Account creato; imposta il cookie HttpOnly per il rinnovo
+          headers:
+            Set-Cookie: { $ref: "#/components/headers/RefreshCookie" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "409":
+          description: Email già registrata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/auth/login:
+    post:
+      tags: [Account]
+      summary: Accede con email e password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Credentials" }
+      responses:
+        "200":
+          description: Accesso riuscito; imposta il cookie HttpOnly per il rinnovo
+          headers:
+            Set-Cookie: { $ref: "#/components/headers/RefreshCookie" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "401":
+          description: Email o password non corretti
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+        "500": { $ref: "#/components/responses/InternalError" }
+
+  /api/auth/refresh:
+    post:
+      tags: [Account]
+      summary: Rinnova il token di accesso usando il cookie di sessione
+      security: [{ RefreshCookie: [] }]
+      responses:
+        "200":
+          description: Token rinnovato e cookie ruotato
+          headers:
+            Set-Cookie: { $ref: "#/components/headers/RefreshCookie" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "401":
+          description: Cookie assente, scaduto o già utilizzato
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/auth/logout:
+    post:
+      tags: [Account]
+      summary: Chiude la sessione e invalida il cookie di rinnovo
+      security: [{ RefreshCookie: [] }]
+      responses:
+        "204": { description: Sessione chiusa }
+
+  /api/favorites:
+    get:
+      tags: [Preferiti]
+      summary: Elenca i preferiti dell'utente autenticato
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Preferiti dell'utente
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Favorite" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Preferiti]
+      summary: Aggiunge o aggiorna un preferito
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [radioId, radioName]
+              properties:
+                radioId: { type: string }
+                radioName: { type: string }
+                streamUrl: { type: [string, "null"] }
+                logoUrl: { type: [string, "null"] }
+      responses:
+        "201":
+          description: Preferito salvato
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Favorite" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/favorites/{radioId}:
+    delete:
+      tags: [Preferiti]
+      summary: Rimuove un preferito
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: radioId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Preferito rimosso }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    RefreshCookie:
+      type: apiKey
+      in: cookie
+      name: radiohub_refresh
+  headers:
+    RefreshCookie:
+      description: Cookie HttpOnly usato per rinnovare la sessione
+      schema: { type: string }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        sourceStatus: { type: integer }
+      required: [error]
+    Radio:
+      type: object
+      required: [id, name, logo, genre, country, streamUrl]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        logo: { type: [string, "null"], format: uri }
+        genre: { type: string }
+        country: { type: string }
+        streamUrl: { type: string, format: uri }
+    PostSummary:
+      type: object
+      required: [id, title, publishedAt, summary]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        publishedAt: { type: [string, "null"], format: date-time }
+        summary: { type: [string, "null"] }
+    NewsAnswer:
+      type: object
+      required: [answer, sources]
+      properties:
+        answer: { type: string }
+        sources:
+          type: array
+          items:
+            type: object
+            required: [id, title, publishedAt]
+            properties:
+              id: { type: string }
+              title: { type: string }
+              publishedAt: { type: [string, "null"], format: date-time }
+    Credentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
+    Session:
+      type: object
+      required: [token, user]
+      properties:
+        token: { type: string, description: JWT di accesso a breve durata }
+        user:
+          type: object
+          required: [id, email]
+          properties:
+            id: { type: string }
+            email: { type: string, format: email }
+    Favorite:
+      type: object
+      required: [userId, radioId, radioName, streamUrl, logoUrl, createdAt]
+      properties:
+        userId: { type: string }
+        radioId: { type: string }
+        radioName: { type: string }
+        streamUrl: { type: [string, "null"] }
+        logoUrl: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+  responses:
+    BadRequest:
+      description: Parametri o corpo della richiesta non validi
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Autenticazione richiesta o token non valido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TooManyRequests:
+      description: Limite di richieste superato
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadGateway:
+      description: Errore del servizio esterno o del provider AI
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    InternalError:
+      description: Errore interno del backend
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
