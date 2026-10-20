@@ -1,5 +1,5 @@
 import { prisma } from "./prisma.js";
-import { summarizePosts } from "./summary-provider.js";
+import { summarizePosts, MOCK_SUMMARY_PREFIX } from "./summary-provider.js";
 import { invalidatePostsCache } from "./cache.js";
 import { notifyNewPosts } from "./news-events.js";
 
@@ -105,6 +105,8 @@ export async function syncNewsFeed() {
       const existing = existingById.get(post.sourceId);
       return (
         !existing?.summary ||
+        (process.env.LLM_PROVIDER === "openai" &&
+          existing.summary.startsWith(MOCK_SUMMARY_PREFIX)) ||
         existing.title !== post.title ||
         existing.content !== post.content
       );

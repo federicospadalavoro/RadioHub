@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   summarizePosts,
   SummaryProviderError,
+  MOCK_SUMMARY_PREFIX,
 } from "../src/summary-provider.js";
 
 const posts = [{ sourceId: "1", title: "Titolo", content: "Contenuto" }];
@@ -22,10 +23,13 @@ describe("summarizePosts", () => {
 
   it("nel mock non chiama OpenAI", async () => {
     vi.stubEnv("LLM_PROVIDER", "mock");
+    vi.stubEnv("AI_API_KEY", "");
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
 
-    await expect(summarizePosts(posts)).resolves.toEqual(new Map());
+    await expect(summarizePosts(posts)).resolves.toEqual(
+      new Map([["1", `${MOCK_SUMMARY_PREFIX} Titolo. Contenuto`]]),
+    );
     expect(fetch).not.toHaveBeenCalled();
   });
 
