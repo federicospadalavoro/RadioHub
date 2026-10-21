@@ -38,13 +38,4 @@ services:
       - key: AI_API_KEY
         sync: false
       - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: radiohub-cache
-          property: connectionString
-  - type: keyvalue
-    name: radiohub-cache
-    plan: free
-    region: frankfurt
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList: []
+        sync: false
