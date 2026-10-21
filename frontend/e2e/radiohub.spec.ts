@@ -92,9 +92,13 @@ test("registrazione → cerca → ascolta → preferiti e rinnovo automatico", a
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Cancella ricerca" }).click();
   await expect(
-    page.getByRole("heading", { name: "Preferite", exact: true }),
+    page.getByRole("heading", { name: "Le tue radio", exact: true }),
   ).toBeVisible();
   await expect(page.locator('[data-favorite-id="2626"]')).toHaveCount(1);
+  await expect(page.locator(".station-list > article").first()).toHaveAttribute(
+    "data-favorite-id",
+    "2626",
+  );
   await page.reload();
   await expect(page.locator('[data-favorite-id="2626"]')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("token"))).toBeNull();
