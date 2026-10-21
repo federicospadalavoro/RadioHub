@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { Provider } from "react-redux";
 import App from "../src/App";
+import { createAppStore } from "../src/store";
 
 vi.mock("../src/RadioAudio", () => ({ default: () => null }));
 vi.mock("../src/session", () => ({
@@ -22,6 +24,12 @@ const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status });
 let search: Mock<(url: URL, options?: RequestInit) => Promise<Response>>;
 let posts: Mock<(url: URL, options?: RequestInit) => Promise<Response>>;
+const renderApp = () =>
+  render(
+    <Provider store={createAppStore()}>
+      <App />
+    </Provider>,
+  );
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -50,7 +58,7 @@ async function advance(ms = 300) {
 
 describe("Ricerca radio", () => {
   it("aspetta 300 ms, invia testo e limite e mostra le radio restituite", async () => {
-    render(<App />);
+    renderApp();
     const input = screen.getByRole("textbox", { name: "Cerca una radio" });
     fireEvent.change(input, { target: { value: "Rock & Pop" } });
     await advance(299);
@@ -73,7 +81,7 @@ describe("Ricerca radio", () => {
           resolveOld = resolve;
         }),
     );
-    render(<App />);
+    renderApp();
     const input = screen.getByRole("textbox", { name: "Cerca una radio" });
     fireEvent.change(input, { target: { value: "vecchia" } });
     await advance();
@@ -93,7 +101,7 @@ describe("Ricerca radio", () => {
   });
 
   it("pulisce risultati e query senza una nuova richiesta quando cancelli", async () => {
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole("textbox", { name: "Cerca una radio" }), {
       target: { value: "rock" },
     });
@@ -111,7 +119,7 @@ describe("Ricerca radio", () => {
 
   it("mostra gli errori del backend invece di risultati finti", async () => {
     search.mockResolvedValue(json({ error: "FM-World non disponibile" }, 502));
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole("textbox", { name: "Cerca una radio" }), {
       target: { value: "rock" },
     });
@@ -123,7 +131,7 @@ describe("Ricerca radio", () => {
   });
 
   it("usa paese e genere interpretati dall'AI al posto della ricerca per nome", async () => {
-    render(<App />);
+    renderApp();
     fireEvent.change(screen.getByRole("textbox", { name: "Cerca una radio" }), {
       target: { value: "rock italiana" },
     });
@@ -154,7 +162,7 @@ describe("Ricerca radio", () => {
         }),
     );
     posts.mockImplementation(async () => json([post]));
-    render(<App />);
+    renderApp();
     await advance();
     const signal = posts.mock.calls[0][1]!.signal as AbortSignal;
     fireEvent.click(screen.getByRole("button", { name: "Vedi tutte" }));

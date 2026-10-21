@@ -49,6 +49,7 @@ export const config = {
   upstreamTimeoutMs: integer("UPSTREAM_TIMEOUT_MS", 10_000),
   aiTimeoutMs: integer("AI_TIMEOUT_MS", 30_000),
   aiSearchTimeoutMs: integer("AI_SEARCH_TIMEOUT_MS", 15_000),
+  aiApiUrl: process.env.AI_API_URL ?? "https://api.openai.com/v1/responses",
   aiModel: process.env.AI_MODEL ?? "gpt-6-luna",
   aiReasoningEffort: process.env.AI_REASONING_EFFORT ?? "low",
   aiSummaryMaxTokens: integer("AI_SUMMARY_MAX_TOKENS", 1000),

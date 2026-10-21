@@ -200,23 +200,87 @@ button .icon {
   position: absolute;
   right: 0;
   top: 48px;
-  min-width: 220px;
-  padding: 16px;
-  background: #fff;
+  width: min(290px, calc(100vw - 24px));
+  padding: 20px;
+  background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: 0 10px 35px #28334b20;
-  border-radius: 14px;
+  box-shadow: 0 14px 40px #18263b26;
+  border-radius: 22px;
   z-index: 5;
+  text-align: center;
 }
 .account-popover p {
   font-size: 13px;
   color: var(--muted);
   overflow-wrap: anywhere;
-  margin: 0 0 12px;
+  margin: 0 0 16px;
 }
-.account-popover button {
+.account-popover .account-email {
+  font-weight: 600;
+}
+.separate-favorites-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-size: 13px;
+}
+.switch-track {
+  width: 38px;
+  height: 23px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 99px;
+  background: var(--line);
+  transition: background 160ms ease;
+}
+.switch-track > span {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--surface-solid, #fff);
+  box-shadow: 0 1px 3px #0002;
+  transition: transform 160ms ease;
+}
+.separate-favorites-toggle[aria-checked="true"] .switch-track {
+  background: var(--accent);
+}
+.separate-favorites-toggle[aria-checked="true"] .switch-track > span {
+  transform: translateX(15px);
+}
+.account-popover .account-favorites-link,
+.account-popover .account-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: 13px;
   color: var(--accent-text);
-  padding: 8px 0;
+}
+.account-popover .account-favorites-link {
+  margin-top: 8px;
+  background: var(--accent-soft);
+}
+.account-popover .account-logout {
+  margin-top: 4px;
+}
+.account-popover button:hover {
+  background-color: var(--accent-soft);
+}
+.account-popover .separate-favorites-toggle:hover {
+  background: transparent;
+}
+.account-popover .account-logout {
+  color: var(--accent-text);
 }
 .account-button {
   padding: 8px;
@@ -507,15 +571,27 @@ button .icon {
   color: #b52c35;
 }
 .auth-dialog {
+  position: fixed;
+  z-index: 1001;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: min(430px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  margin: 0;
   padding: 35px;
   border: 1px solid #e0e7f1;
   border-radius: 22px;
   background: #f9fbff;
   box-shadow: 0 25px 100px #18305030;
   color: #162239;
+  outline: none;
 }
-.auth-dialog::backdrop {
+.auth-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
   background: #1b2f4e60;
   backdrop-filter: blur(6px);
 }
@@ -888,6 +964,39 @@ button .icon {
 .library-panel {
   display: flex;
   flex-direction: column;
+}
+.library-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 7px 10px;
+}
+.library-heading .list-heading {
+  margin: 0;
+}
+.library-switch {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--field-bg);
+}
+.library-switch button {
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 13px;
+}
+.library-switch button.active {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: 0 1px 4px #00000016;
 }
 .station-list {
   padding: 0;
@@ -1855,7 +1964,7 @@ button .icon {
   border-color: var(--field-border);
   color: var(--ink);
 }
-.auth-dialog::backdrop {
+.auth-overlay {
   background: #070e1ba6;
 }
 .avatar {
@@ -1914,12 +2023,6 @@ button .icon {
 }
 .mini-volume input {
   width: 90px;
-}
-.news-count {
-  color: var(--secondary);
-  font-size: 13px;
-  margin: 0 8px 10px;
-  min-height: 16px;
 }
 .station-wave {
   display: flex;
@@ -2440,6 +2543,9 @@ button .icon {
     grid-template-columns: repeat(2, 1fr);
     gap: 6px;
   }
+  .mobile-dock nav.with-favorites {
+    grid-template-columns: repeat(3, 1fr);
+  }
   .mobile-dock nav button {
     position: relative;
     min-height: var(--mobile-nav-height);
@@ -2500,12 +2606,13 @@ button .icon {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobile-player-open .workspace > .player-slot,
-  .workspace > .player-slot,
-  .player-slot > .player-panel,
-  .player-slot > .mobile-player-heading,
-  .mobile-dock nav button {
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -2544,4 +2651,59 @@ button .icon {
 }
 .share-notice {
   overflow-wrap: anywhere;
+}
+
+.startup-hidden {
+  visibility: hidden;
+}
+.startup-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--canvas);
+}
+.startup-brand {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  color: inherit;
+  font-size: clamp(38px, 8vw, 64px);
+  font-weight: 750;
+  letter-spacing: -1.2px;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  transition:
+    left 650ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 650ms cubic-bezier(0.22, 1, 0.36, 1),
+    font-size 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.startup-splash.moving .startup-brand {
+  left: var(--startup-left);
+  top: var(--startup-top);
+  font-size: var(--startup-size);
+}
+.startup-caption {
+  position: absolute;
+  top: calc(50% + 48px);
+  color: var(--secondary);
+  font-size: 14px;
+  animation: startup-caption-out 180ms ease 250ms forwards;
+}
+@keyframes startup-caption-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .startup-brand {
+    transition: none;
+  }
+  .startup-caption {
+    animation: none;
+  }
 }

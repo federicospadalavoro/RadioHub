@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Provider } from "react-redux";
 import { describe, expect, it, vi } from "vitest";
 import RadioAudio from "../src/RadioAudio";
+import { useAppDispatch } from "../src/hooks";
+import { createAppStore, toggleRequested } from "../src/store";
 import type { Radio } from "../src/types";
 
 const radio: Radio = {
@@ -17,7 +20,6 @@ const callbacks = {
   onFavorite: vi.fn(),
   onNext: vi.fn(),
   onPrevious: vi.fn(),
-  onStatus: vi.fn(),
 };
 function Player({
   station = radio,
@@ -26,32 +28,29 @@ function Player({
   station?: Radio | null;
   request?: number;
 }) {
-  const [active, setActive] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [muted, setMuted] = useState(false);
-  return (
-    <RadioAudio
-      radio={station}
-      request={request}
-      favorite={false}
-      {...callbacks}
-      playbackActive={active}
-      onPlaybackActive={setActive}
-      volumeControls={{
-        volume,
-        muted,
-        onVolume: setVolume,
-        onMute: () => setMuted((value) => !value),
-      }}
-    />
-  );
+  const dispatch = useAppDispatch();
+  const previousRequest = useRef(0);
+  useEffect(() => {
+    if (request !== previousRequest.current) {
+      previousRequest.current = request;
+      dispatch(toggleRequested());
+    }
+  }, [dispatch, request]);
+  return <RadioAudio radio={station} favorite={false} {...callbacks} />;
+}
+function renderPlayer(ui: React.ReactElement) {
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <Provider store={createAppStore()}>{children}</Provider>
+    ),
+  });
 }
 const audio = () =>
   screen.getByLabelText("Ascolta Rock FM") as HTMLAudioElement;
 
 describe("Player radio", () => {
   it("disabilita il play finché non è selezionata una radio", () => {
-    render(<Player station={null} />);
+    renderPlayer(<Player station={null} />);
     expect(
       screen.getByRole("button", { name: "Riproduci radio" }),
     ).toBeDisabled();
@@ -60,7 +59,7 @@ describe("Player radio", () => {
 
   it("avvia, distingue buffering e diretta, poi mette in pausa", async () => {
     const user = userEvent.setup();
-    render(<Player />);
+    renderPlayer(<Player />);
     await user.click(screen.getByRole("button", { name: "Riproduci radio" }));
     expect(HTMLMediaElement.prototype.play).toHaveBeenCalledOnce();
     expect(
@@ -79,7 +78,7 @@ describe("Player radio", () => {
 
   it("applica volume e muto al vero elemento audio", async () => {
     const user = userEvent.setup();
-    render(<Player />);
+    renderPlayer(<Player />);
     fireEvent.change(screen.getByRole("slider", { name: "Volume" }), {
       target: { value: "0.35" },
     });
@@ -92,7 +91,7 @@ describe("Player radio", () => {
   });
 
   it("cambia radio usando un solo audio, fermando lo stream precedente", () => {
-    const { rerender } = render(<Player request={1} />);
+    const { rerender } = renderPlayer(<Player request={1} />);
     const element = audio();
     vi.mocked(HTMLMediaElement.prototype.pause).mockClear();
     rerender(
@@ -112,21 +111,25 @@ describe("Player radio", () => {
     expect(element.src).toBe("https://stream.test/jazz.mp3");
   });
 
-  it("il nuovo comando play/pausa non ricrea la sorgente dello stream", () => {
-    const { rerender } = render(<Player request={1} />);
+  it("il play/pausa non ricrea la sorgente dello stream", async () => {
+    const user = userEvent.setup();
+    renderPlayer(<Player />);
+    const element = audio();
+    await user.click(screen.getByRole("button", { name: "Riproduci radio" }));
     vi.mocked(HTMLMediaElement.prototype.load).mockClear();
-    rerender(<Player request={2} />);
+    await user.click(screen.getByRole("button", { name: "Metti in pausa" }));
     expect(screen.getByText("In pausa")).toBeInTheDocument();
     expect(HTMLMediaElement.prototype.load).not.toHaveBeenCalled();
-    rerender(<Player request={3} />);
+    await user.click(screen.getByRole("button", { name: "Riproduci radio" }));
     expect(
       screen.getByRole("button", { name: "Metti in pausa" }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Ascolta Rock FM")).toBe(element);
   });
 
   it("mostra un errore se lo stream fallisce e consente di riprovare", async () => {
     const user = userEvent.setup();
-    render(<Player request={1} />);
+    renderPlayer(<Player request={1} />);
     fireEvent.error(audio());
     expect(screen.getByText(/Stream non disponibile/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Riproduci radio" }));
@@ -135,7 +138,7 @@ describe("Player radio", () => {
 
   it("interrompe il buffering dopo 20 secondi senza audio", async () => {
     vi.useFakeTimers();
-    render(<Player request={1} />);
+    renderPlayer(<Player request={1} />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(20_000);
     });
@@ -144,7 +147,7 @@ describe("Player radio", () => {
   });
 
   it("Spazio controlla l'ascolto ma non interferisce con i campi di testo", () => {
-    render(
+    renderPlayer(
       <>
         <input aria-label="Ricerca" />
         <Player />

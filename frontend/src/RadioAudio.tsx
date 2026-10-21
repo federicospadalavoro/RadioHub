@@ -1,41 +1,71 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type SetStateAction,
+} from "react";
 import type Hls from "hls.js";
 import Icon from "./Icon";
 import RadioLogo from "./RadioLogo";
 import type { Radio } from "./types";
-import VolumeControl, { type VolumeProps } from "./VolumeControl";
+import VolumeControl from "./VolumeControl";
 import { playbackLabels, type PlaybackStatus } from "./playback";
+import { useAppDispatch, useAppSelector } from "./hooks";
+import {
+  setPlaybackActive,
+  setPlaybackStatus,
+  setVolume,
+  toggleMute,
+} from "./store";
 
 export default function RadioAudio({
   radio,
-  request,
   favorite,
   onFavorite,
   onNext,
   onPrevious,
-  onStatus,
-  volumeControls,
-  playbackActive,
-  onPlaybackActive,
 }: {
   radio: Radio | null;
-  request: number;
   favorite: boolean;
   onFavorite: () => void;
   onNext: () => void;
   onPrevious: () => void;
-  onStatus: (status: PlaybackStatus) => void;
-  volumeControls: VolumeProps;
-  playbackActive: boolean;
-  onPlaybackActive: (active: boolean) => void;
 }) {
+  const dispatch = useAppDispatch();
+  const {
+    request,
+    status,
+    active: playbackActive,
+    volume,
+    muted,
+  } = useAppSelector((state) => state.player);
+  const statusRef = useRef(status);
+  statusRef.current = status;
+  const setStatus = useCallback(
+    (next: SetStateAction<PlaybackStatus>) => {
+      const value = typeof next === "function" ? next(statusRef.current) : next;
+      statusRef.current = value;
+      dispatch(setPlaybackStatus(value));
+    },
+    [dispatch],
+  );
+  const setActive = useCallback(
+    (active: boolean) => dispatch(setPlaybackActive(active)),
+    [dispatch],
+  );
+  const volumeControls = {
+    volume,
+    muted,
+    onVolume: (value: number) => dispatch(setVolume(value)),
+    onMute: () => dispatch(toggleMute()),
+  };
   const audio = useRef<HTMLAudioElement>(null);
   const consumedRequest = useRef(0);
   const latestRequest = useRef(request);
   const engineRef = useRef<Hls | null>(null);
   const streamReady = useRef(false);
   const wantsPlay = useRef(false);
-  const [status, setStatus] = useState<PlaybackStatus>("idle");
   const [shared, setShared] = useState("");
   const playing = status === "playing";
   const fail = useCallback(() => {
@@ -43,37 +73,36 @@ export default function RadioAudio({
     setStatus("error");
     audio.current?.pause();
     engineRef.current?.stopLoad();
-    onPlaybackActive(false);
-  }, [onPlaybackActive]);
+    setActive(false);
+  }, [setActive, setStatus]);
   const play = useCallback(() => {
     wantsPlay.current = true;
-    onPlaybackActive(true);
+    setActive(true);
     setStatus("loading");
     if (!streamReady.current) return;
     engineRef.current?.startLoad();
     return audio.current?.play().catch((error: Error) => {
       if (error.name !== "AbortError" && wantsPlay.current) fail();
     });
-  }, [fail, onPlaybackActive]);
+  }, [fail, setActive, setStatus]);
 
   const togglePlayback = useCallback(() => {
     if (wantsPlay.current) {
       wantsPlay.current = false;
-      onPlaybackActive(false);
+      setActive(false);
       audio.current!.pause();
       setStatus("paused");
     } else void play();
-  }, [onPlaybackActive, play]);
+  }, [play, setActive, setStatus]);
 
   useEffect(() => {
     latestRequest.current = request;
   }, [request]);
 
-  useEffect(() => onStatus(status), [status, onStatus]);
   useEffect(() => {
-    audio.current!.volume = volumeControls.volume;
-    audio.current!.muted = volumeControls.muted;
-  }, [volumeControls.volume, volumeControls.muted]);
+    audio.current!.volume = volume;
+    audio.current!.muted = muted;
+  }, [volume, muted]);
   useEffect(() => {
     if (status !== "loading" && status !== "buffering") return;
     const timer = setTimeout(() => {
@@ -126,7 +155,7 @@ export default function RadioAudio({
     let disposed = false;
     const autoplay = currentRequest > 0;
     wantsPlay.current = autoplay;
-    onPlaybackActive(autoplay);
+    setActive(autoplay);
     streamReady.current = false;
     if (
       /\.m3u8(?:[?#]|$)/i.test(radio.streamUrl) &&
@@ -178,7 +207,7 @@ export default function RadioAudio({
       element.removeAttribute("src");
       element.load();
     };
-  }, [radio, play, fail, onPlaybackActive]);
+  }, [radio, play, fail, setActive, setStatus]);
 
   useEffect(() => {
     if (radio && request !== consumedRequest.current) {
@@ -197,7 +226,7 @@ export default function RadioAudio({
     });
     navigator.mediaSession.setActionHandler("pause", () => {
       wantsPlay.current = false;
-      onPlaybackActive(false);
+      setActive(false);
       audio.current!.pause();
       setStatus("paused");
     });
@@ -212,7 +241,7 @@ export default function RadioAudio({
       ] as const)
         navigator.mediaSession.setActionHandler(action, null);
     };
-  }, [radio, onNext, onPrevious, onPlaybackActive, play]);
+  }, [radio, onNext, onPrevious, setActive, setStatus, play]);
 
   async function share() {
     if (!radio) return;
@@ -244,7 +273,7 @@ export default function RadioAudio({
           if (audio.current?.paused || !wantsPlay.current) return;
           setStatus("playing");
           wantsPlay.current = true;
-          onPlaybackActive(true);
+          setActive(true);
         }}
         onPause={() => {
           if (
@@ -257,7 +286,7 @@ export default function RadioAudio({
             return;
           if (!audio.current?.getAttribute("src") && !engineRef.current) return;
           wantsPlay.current = false;
-          onPlaybackActive(false);
+          setActive(false);
           setStatus((s) => (s === "error" ? s : "paused"));
         }}
         onWaiting={waiting}

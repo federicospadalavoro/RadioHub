@@ -10,6 +10,7 @@ tags:
   - name: Stato
   - name: Radio
   - name: Notizie
+  - name: AI
   - name: Account
   - name: Preferiti
 paths:
@@ -162,7 +163,7 @@ paths:
                 properties:
                   query: { type: string }
                   limit: { type: integer, minimum: 1, maximum: 50 }
-                  category: { type: integer, nullable: true }
+                  category: { type: [integer, "null"] }
                   country:
                     {
                       type: string,
@@ -250,6 +251,11 @@ paths:
           content:
             text/event-stream:
               schema: { type: string }
+        "503":
+          description: Limite massimo di connessioni simultanee raggiunto
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /api/news/ask:
@@ -478,7 +484,7 @@ components:
         streamUrl: { type: string, format: uri }
     PostSummary:
       type: object
-      required: [id, title, publishedAt, summary]
+      required: [id, title, publishedAt, summary, content, excerpt, imageUrl]
       properties:
         id: { type: string }
         title: { type: string }

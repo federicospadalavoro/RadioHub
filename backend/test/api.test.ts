@@ -66,7 +66,19 @@ describe("API notizie e cache", () => {
     expect(response.headers["x-total-count"]).toBe("21");
     expect(prisma.post.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { title: { contains: "Musica", mode: "insensitive" } },
+        where: {
+          AND: [
+            {
+              NOT: {
+                title: {
+                  equals: "Notizia di esempio",
+                  mode: "insensitive",
+                },
+              },
+            },
+            { title: { contains: "Musica", mode: "insensitive" } },
+          ],
+        },
         take: 2,
         skip: 10,
       }),
@@ -76,10 +88,10 @@ describe("API notizie e cache", () => {
       content: "Testo",
       excerpt: "Anteprima",
     });
-    expect(setCache).toHaveBeenCalledWith('posts:page:0:["musica",2,10]', {
-      posts: response.body,
-      total: 21,
-    });
+    expect(setCache).toHaveBeenCalledWith(
+      'posts:page:without-example:0:["musica",2,10]',
+      { posts: response.body, total: 21 },
+    );
   });
 
   it("riusa la pagina senza interrogare PostgreSQL; dopo un miss la ricarica", async () => {

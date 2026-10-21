@@ -65,7 +65,7 @@ async function summarizeWithOpenAI(posts: SummaryInput[]) {
 
   let response: Response;
   try {
-    response = await fetch("https://api.openai.com/v1/responses", {
+    response = await fetch(config.aiApiUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,

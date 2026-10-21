@@ -183,15 +183,25 @@ app.get("/api/posts", async (req, res) => {
   }
 
   try {
-    const key = `posts:page:${await postsCacheVersion()}:${JSON.stringify([title.toLowerCase(), items, skip])}`;
+    const key = `posts:page:without-example:${await postsCacheVersion()}:${JSON.stringify([title.toLowerCase(), items, skip])}`;
     const cached = await getCache<{ posts: unknown[]; total: number }>(key);
     if (cached) {
       res.set("X-Total-Count", String(cached.total)).json(cached.posts);
       return;
     }
+    const examplePost = {
+      NOT: {
+        title: { equals: "Notizia di esempio", mode: "insensitive" as const },
+      },
+    };
     const where = title
-      ? { title: { contains: title, mode: "insensitive" as const } }
-      : {};
+      ? {
+          AND: [
+            examplePost,
+            { title: { contains: title, mode: "insensitive" as const } },
+          ],
+        }
+      : examplePost;
     const [posts, total] = await Promise.all([
       prisma.post.findMany({
         where,

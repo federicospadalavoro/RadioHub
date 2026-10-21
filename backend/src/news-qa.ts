@@ -17,7 +17,7 @@ async function askAI(
   name: string,
   schema: object,
 ) {
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch(config.aiApiUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.AI_API_KEY}`,

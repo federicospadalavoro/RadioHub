@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import files from "./icon-assets";
 
 const names = {
   moon: "moon",
@@ -21,12 +22,6 @@ const names = {
   close: "xmark",
   user: "person",
 };
-const files = import.meta.glob<string>("./icons/*.svg", {
-  eager: true,
-  query: "?url",
-  import: "default",
-});
-
 export default function Icon({
   name,
   size = 20,
