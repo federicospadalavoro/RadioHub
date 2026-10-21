@@ -4,8 +4,8 @@ info:
   version: 1.0.0
   description: API del backend RadioHub per radio, notizie, account e preferiti.
 servers:
-  - url: http://localhost:3000
-    description: Backend locale
+  - url: /
+    description: Stesso indirizzo della pagina API, in locale e online
 tags:
   - name: Stato
   - name: Radio
