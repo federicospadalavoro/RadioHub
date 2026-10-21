@@ -1,29 +1,104 @@
+x-backend-environment: &backend-environment
+  NODE_ENV: production
+  HOST: 0.0.0.0
+  PORT: 3000
+  FRONTEND_PORT: ${FRONTEND_PORT:-5173}
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  DATABASE_URL: ""
+  REDIS_URL: redis://redis:6379
+  TRUST_PROXY: 1
+  # HTTP locale; impostare true quando il sito pubblico usa HTTPS.
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+
 services:
   postgres:
-    image: postgres:17-alpine
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
     environment:
-      POSTGRES_USER: radiohub
-      POSTGRES_PASSWORD: radiohub
-      POSTGRES_DB: radiohub
+      POSTGRES_USER: ${POSTGRES_USER:?Configura POSTGRES_USER nel file .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD nel file .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Configura POSTGRES_DB nel file .env}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U radiohub -d radiohub"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: ${HEALTHCHECK_INTERVAL_SECONDS:-5}s
+      timeout: ${HEALTHCHECK_TIMEOUT_SECONDS:-3}s
+      retries: ${HEALTHCHECK_RETRIES:-10}
 
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:-redis:7-alpine}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      interval: ${HEALTHCHECK_INTERVAL_SECONDS:-5}s
+      timeout: ${HEALTHCHECK_TIMEOUT_SECONDS:-3}s
+      retries: ${HEALTHCHECK_RETRIES:-10}
+
+  migrate:
+    build:
+      context: ./backend
+      target: migrate
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm-slim}
+    env_file: .env
+    environment: *backend-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm-slim}
+    env_file: .env
+    environment: *backend-environment
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: ${HEALTHCHECK_INTERVAL_SECONDS:-5}s
+      timeout: ${HEALTHCHECK_TIMEOUT_SECONDS:-3}s
+      retries: ${HEALTHCHECK_RETRIES:-10}
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:24-bookworm-slim}
+        NGINX_IMAGE: ${NGINX_IMAGE:-nginx:stable-alpine}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/"]
+      interval: ${HEALTHCHECK_INTERVAL_SECONDS:-5}s
+      timeout: ${HEALTHCHECK_TIMEOUT_SECONDS:-3}s
+      retries: ${HEALTHCHECK_RETRIES:-10}
 
 volumes:
   postgres_data:

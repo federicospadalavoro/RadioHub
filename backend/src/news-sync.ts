@@ -2,9 +2,8 @@ import { prisma } from "./prisma.js";
 import { summarizePosts, MOCK_SUMMARY_PREFIX } from "./summary-provider.js";
 import { invalidatePostsCache } from "./cache.js";
 import { notifyNewPosts } from "./news-events.js";
-
-const NEWS_FEED_URL =
-  process.env.NEWS_FEED_URL ?? "https://d3r6kmd22dkoyn.cloudfront.net/";
+import { config } from "./config.js";
+import { logger } from "./logger.js";
 let syncing = false;
 
 export class NewsFeedError extends Error {}
@@ -20,6 +19,8 @@ type FeedPost = {
   title?: { rendered?: string };
   content?: { rendered?: string };
   excerpt?: { rendered?: string };
+  yoast_head_json?: { og_image?: { url?: string }[] };
+  _embedded?: { "wp:featuredmedia"?: { source_url?: string }[] };
 };
 
 type PostData = {
@@ -27,14 +28,20 @@ type PostData = {
   title: string;
   content: string;
   excerpt: string | null;
+  imageUrl: string | null;
   publishedAt: Date | null;
 };
 
-export async function fetchNewsFeed(): Promise<unknown> {
+export async function fetchNewsFeed(ids: string[] = []): Promise<unknown> {
+  const url = new URL(config.newsFeedUrl);
+  if (ids.length) {
+    url.searchParams.set("include", ids.join(","));
+    url.searchParams.set("per_page", "100");
+  }
   let response: Response;
   try {
-    response = await fetch(NEWS_FEED_URL, {
-      signal: AbortSignal.timeout(10_000),
+    response = await fetch(url.href, {
+      signal: AbortSignal.timeout(config.upstreamTimeoutMs),
     });
   } catch {
     throw new NewsFeedError("Feed notizie non raggiungibile o timeout");
@@ -83,9 +90,45 @@ export function formatNewsFeed(data: unknown): PostData[] {
       title: post.title.rendered,
       content: post.content?.rendered ?? post.excerpt?.rendered ?? "",
       excerpt: post.excerpt?.rendered || null,
+      imageUrl:
+        [
+          ...(post.yoast_head_json?.og_image ?? []).map((image) => image.url),
+          post._embedded?.["wp:featuredmedia"]?.[0]?.source_url,
+          /<img\b[^>]*\bsrc=["']([^"']+)["']/i.exec(
+            post.content?.rendered ?? "",
+          )?.[1],
+        ]
+          .find((url) => url && /^https?:\/\//i.test(url))
+          ?.replace(/&amp;/g, "&") ?? null,
       publishedAt: parsePublishedAt(post.date_gmt, post.date),
     };
   });
+}
+
+export async function backfillNewsImages() {
+  const missing = await prisma.post.findMany({
+    where: { imageUrl: null },
+    select: { sourceId: true },
+  });
+  const ids = missing
+    .map((post) => post.sourceId)
+    .filter((id) => /^\d+$/.test(id));
+  let updated = 0;
+  for (let start = 0; start < ids.length; start += 100) {
+    const posts = formatNewsFeed(
+      await fetchNewsFeed(ids.slice(start, start + 100)),
+    );
+    for (const post of posts)
+      if (post.imageUrl) {
+        const result = await prisma.post.updateMany({
+          where: { sourceId: post.sourceId, imageUrl: null },
+          data: { imageUrl: post.imageUrl },
+        });
+        updated += result.count;
+      }
+  }
+  if (updated) await invalidatePostsCache();
+  return updated;
 }
 
 export async function syncNewsFeed() {
@@ -126,12 +169,17 @@ export async function syncNewsFeed() {
           title: post.title,
           content: post.content,
           excerpt: post.excerpt,
+          imageUrl: post.imageUrl,
           publishedAt: post.publishedAt,
           summary,
         },
       });
     }
     await invalidatePostsCache();
+    // Le vecchie notizie possono non comparire più nella prima pagina del feed.
+    await backfillNewsImages().catch((error) =>
+      logger.warn({ event: "news_images_failed", err: error }),
+    );
 
     const updated = posts.filter((post) =>
       existingById.has(post.sourceId),

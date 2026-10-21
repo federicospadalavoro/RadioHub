@@ -8,9 +8,10 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src test",
-    "format": "prettier --write src",
-    "format:check": "prettier --check src",
+    "lint": "eslint src test vitest.config.ts --max-warnings=0",
+    "format": "prettier --write src test prisma.config.ts eslint.config.mjs vitest.config.ts",
+    "format:check": "prettier --check src test prisma.config.ts eslint.config.mjs vitest.config.ts",
+    "check": "npm run typecheck && npm run lint && npm run format:check",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -30,6 +31,7 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.1",
+    "pino": "^10.4.0",
     "rapidoc": "^11.0.1",
     "redis": "^6.3.0"
   },

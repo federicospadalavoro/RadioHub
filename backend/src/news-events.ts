@@ -1,9 +1,10 @@
 import type { RequestHandler, Response } from "express";
+import { config } from "./config.js";
 
 const clients = new Set<Response>();
 
 export const subscribeToNews: RequestHandler = (_req, res) => {
-  if (clients.size >= 100) {
+  if (clients.size >= config.sseMaxClients) {
     res.status(503).json({ error: "Troppe connessioni in tempo reale" });
     return;
   }
@@ -14,9 +15,12 @@ export const subscribeToNews: RequestHandler = (_req, res) => {
     "X-Accel-Buffering": "no",
   });
   res.flushHeaders();
-  res.write("retry: 3000\n\n");
+  res.write(`retry: ${config.sseRetryMs}\n\n`);
   clients.add(res);
-  const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 25_000);
+  const heartbeat = setInterval(
+    () => res.write(": heartbeat\n\n"),
+    config.sseHeartbeatMs,
+  );
   res.on("close", () => {
     clearInterval(heartbeat);
     clients.delete(res);

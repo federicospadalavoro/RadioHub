@@ -1,14 +1,29 @@
-import "dotenv/config";
+import { config } from "./config.js";
 import type { RequestHandler } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import { hostname, networkInterfaces } from "node:os";
 import { rateLimit } from "express-rate-limit";
 
 const origins = (
-  process.env.CORS_ORIGINS ?? "http://localhost:5173,http://127.0.0.1:5173"
+  process.env.CORS_ORIGINS ||
+  process.env.RENDER_EXTERNAL_URL ||
+  `http://localhost:${config.frontendPort},http://127.0.0.1:${config.frontendPort}`
 )
   .split(",")
   .map((origin) => origin.trim());
+
+// In sviluppo il telefono apre Vite con l'indirizzo del Mac nella rete locale.
+if (process.env.NODE_ENV !== "production") {
+  const hosts = [
+    hostname(),
+    ...Object.values(networkInterfaces())
+      .flat()
+      .filter((address) => address?.family === "IPv4")
+      .map((address) => address!.address),
+  ];
+  origins.push(...hosts.map((host) => `http://${host}:${config.frontendPort}`));
+}
 
 const checkOrigin: RequestHandler = (req, res, next) => {
   const origin = req.get("origin");
@@ -41,15 +56,19 @@ function limiter(
 export const security = [
   helmet(),
   checkOrigin,
-  cors({ origin: origins, credentials: true }),
-  limiter(Number(process.env.API_RATE_LIMIT ?? 300), 15 * 60_000),
+  cors({
+    origin: origins,
+    credentials: true,
+    exposedHeaders: ["X-Total-Count", "X-Request-Id"],
+  }),
+  limiter(config.apiRateLimit, config.rateLimitWindowMs),
 ];
 export const loginLimiter = limiter(
-  Number(process.env.AUTH_RATE_LIMIT ?? 10),
-  15 * 60_000,
+  config.authRateLimit,
+  config.rateLimitWindowMs,
   true,
 );
 export const aiLimiter = limiter(
-  Number(process.env.AI_RATE_LIMIT ?? 10),
-  60_000,
+  config.aiRateLimit,
+  config.aiRateLimitWindowMs,
 );

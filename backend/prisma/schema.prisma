@@ -13,6 +13,7 @@ model Post {
   title       String
   content     String    @db.Text
   excerpt     String?   @db.Text
+  imageUrl    String?
   publishedAt DateTime?
   summary     String?   @db.Text
   createdAt   DateTime  @default(now())

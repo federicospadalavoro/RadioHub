@@ -1,4 +1,5 @@
 import { prisma } from "./prisma.js";
+import { config } from "./config.js";
 
 const answerSchema = {
   type: "object",
@@ -22,11 +23,11 @@ async function askAI(
       Authorization: `Bearer ${process.env.AI_API_KEY}`,
       "Content-Type": "application/json",
     },
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(config.aiTimeoutMs),
     body: JSON.stringify({
-      model: "gpt-6-luna",
-      reasoning: { effort: "low" },
-      max_output_tokens: 500,
+      model: config.aiModel,
+      reasoning: { effort: config.aiReasoningEffort },
+      max_output_tokens: config.aiAnswerMaxTokens,
       store: false,
       instructions,
       input: JSON.stringify(input),
@@ -124,7 +125,7 @@ export async function answerNewsQuestion(question: string) {
         content: content
           .replace(/<[^>]*>/g, " ")
           .replace(/\s+/g, " ")
-          .slice(0, 3000),
+          .slice(0, config.aiSourceMaxChars),
       })),
     },
     "news_answer",

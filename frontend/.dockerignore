@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.*
+playwright-report
+test-results
+*.tsbuildinfo
+*.log
+coverage
+e2e

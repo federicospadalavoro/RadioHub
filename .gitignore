@@ -4,6 +4,8 @@ dist/
 playwright-report/
 test-results/
 .env
+.env.*
+!.env.example
 .DS_Store
 /README.md
 /AI_USAGE.md

@@ -1,11 +1,27 @@
 import { app } from "./app.js";
-import "dotenv/config";
+import { config } from "./config.js";
 import { startNewsSyncJob } from "./news-job.js";
+import { logger } from "./logger.js";
+import express from "express";
+import { resolve } from "node:path";
 
-const port = process.env.PORT || 3000;
+// In hosting lo stesso server può servire anche il frontend già compilato.
+if (process.env.STATIC_DIR)
+  app.use(express.static(resolve(process.env.STATIC_DIR), { maxAge: 0 }));
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+const server = app.listen(config.port, config.host, () => {
+  logger.info({
+    event: "server_started",
+    host: config.host,
+    port: config.port,
+  });
   startNewsSyncJob();
-  console.log("Sincronizzazione automatica delle notizie ogni 5 minuti");
+  logger.info({
+    event: "news_sync_scheduled",
+    intervalMs: config.newsSyncIntervalMs,
+  });
+});
+server.on("error", (err) => {
+  logger.fatal({ event: "server_start_failed", err });
+  process.exitCode = 1;
 });

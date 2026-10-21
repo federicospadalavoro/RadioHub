@@ -1,3 +1,5 @@
+import { config } from "./config.js";
+
 type FmRadio = {
   id: number | string;
   name: string;
@@ -10,6 +12,29 @@ type FmRadio = {
     is_online: boolean;
     priority?: number;
   }[];
+};
+
+// Identificativi delle categorie restituiti da FM-World.
+export const radioCategories = {
+  3: "Contemporary",
+  4: "Thematic",
+  5: "News",
+  7: "Oldies",
+  10: "Local",
+  12: "Pop",
+  14: "Rock",
+  15: "Talk",
+  16: "Classica",
+  20: "Jazz",
+  21: "Classic hit",
+  22: "Folk/Musica popolare/Liscio",
+  24: "Hip Hop RNB",
+  25: "Funky/Soul",
+  26: "Electronica",
+  31: "Lounge",
+  40: "Dance",
+  41: "Musica Italiana",
+  42: "Anni 80/90",
 };
 
 export class FmWorldError extends Error {
@@ -70,6 +95,11 @@ export function normalizeFmWorldRadios(data: unknown, limit: number) {
         },
       ];
     })
+    .sort(
+      (a, b) =>
+        Number(/^(italy|italia|it)$/i.test(b.country.trim())) -
+        Number(/^(italy|italia|it)$/i.test(a.country.trim())),
+    )
     .slice(0, limit);
 }
 
@@ -77,14 +107,36 @@ export async function searchFmWorldRadios(
   query: string,
   limit: number,
   token: string,
+  category: number | null = null,
+  country = "",
 ) {
-  const url = new URL("https://connect.fm-world.com/client2/radios");
+  const url = new URL(config.fmWorldUrl);
   url.searchParams.set("query", query);
-  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("limit", "50");
+  if (category !== null) url.searchParams.set("categories", String(category));
+  if (country) url.searchParams.set("countries", country);
+  return normalizeFmWorldRadios(await fetchFmWorld(url, token), limit);
+}
+
+export async function getFmWorldRadio(id: string, token: string) {
+  const url = new URL(`${config.fmWorldUrl.replace(/\/$/, "")}/${id}`);
+  try {
+    const data = await fetchFmWorld(url, token);
+    if (!data) return null;
+    const radio = normalizeFmWorldRadios({ items: [data] }, 1)[0];
+    return radio?.id === id ? radio : null;
+  } catch (error) {
+    if (error instanceof FmWorldError && error.sourceStatus === 404)
+      return null;
+    throw error;
+  }
+}
+
+async function fetchFmWorld(url: URL, token: string) {
   try {
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(config.upstreamTimeoutMs),
     });
     if (!response.ok)
       throw new FmWorldError(
@@ -92,7 +144,7 @@ export async function searchFmWorldRadios(
         502,
         response.status,
       );
-    return normalizeFmWorldRadios(await response.json(), limit);
+    return await response.json();
   } catch (error) {
     if (error instanceof FmWorldError) throw error;
     const timeout = error instanceof Error && error.name === "TimeoutError";

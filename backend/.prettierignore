@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# File prodotti da Prisma: vengono rigenerati, non formattati a mano.
+src/generated/

@@ -1,16 +1,25 @@
 import { isNewsSyncRunning, syncNewsFeed } from "./news-sync.js";
-
-const interval = 5 * 60 * 1000;
+import { config } from "./config.js";
+import { logger } from "./logger.js";
+import { prisma } from "./prisma.js";
 
 export function startNewsSyncJob() {
-  return setInterval(async () => {
+  const synchronize = async () => {
     if (isNewsSyncRunning()) return;
 
     try {
       const result = await syncNewsFeed();
-      console.log("Sincronizzazione notizie completata", result);
+      logger.info({ event: "news_sync_completed", ...result });
     } catch (error) {
-      console.error("Sincronizzazione notizie fallita", error);
+      logger.error({ event: "news_sync_failed", err: error });
     }
-  }, interval);
+  };
+  // Primo avvio: importa notizie vere soltanto se la tabella è vuota.
+  void prisma.post
+    .count()
+    .then((count) => {
+      if (count === 0) return synchronize();
+    })
+    .catch((err) => logger.error({ event: "news_initialization_failed", err }));
+  return setInterval(synchronize, config.newsSyncIntervalMs);
 }

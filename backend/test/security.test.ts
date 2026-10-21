@@ -1,6 +1,13 @@
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("../src/health.js", () => ({
+  checkHealth: vi.fn().mockResolvedValue({
+    status: "OK",
+    checks: { postgres: "OK", redis: "OK" },
+  }),
+}));
+
 vi.hoisted(() => {
   process.env.AUTH_RATE_LIMIT = "2";
   process.env.AI_RATE_LIMIT = "2";

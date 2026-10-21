@@ -1,22 +1,34 @@
-import "dotenv/config";
+import { config } from "./config.js";
 import { createClient } from "redis";
+import { logger } from "./logger.js";
+import { withServiceTimeout } from "./timeout.js";
 
 const redis = createClient({
-  url: process.env.REDIS_URL ?? "redis://localhost:6379",
+  url: config.redisUrl,
+  socket: { connectTimeout: config.serviceTimeoutMs, reconnectStrategy: false },
+  commandOptions: { timeout: config.serviceTimeoutMs },
+  disableOfflineQueue: true,
 });
-redis.on("error", () =>
-  console.error("Redis non raggiungibile; cache disattivata"),
-);
+redis.on("error", (err) => logger.warn({ event: "redis_unavailable", err }));
 let connection: Promise<void> | undefined;
 
 async function connect() {
-  if (!redis.isOpen) {
-    connection ??= redis
-      .connect()
-      .then(() => undefined)
-      .finally(() => (connection = undefined));
-    await connection;
-  }
+  if (redis.isReady) return;
+  connection ??= withServiceTimeout(redis.connect())
+    .then(() => undefined)
+    .catch((error) => {
+      if (redis.isOpen) redis.destroy();
+      throw error;
+    })
+    .finally(() => {
+      connection = undefined;
+    });
+  await connection;
+}
+
+export async function pingCache() {
+  await connect();
+  if ((await redis.ping()) !== "PONG") throw new Error("RedisPingFailed");
 }
 
 export async function getCache<T>(key: string): Promise<T | null> {
@@ -32,7 +44,7 @@ export async function getCache<T>(key: string): Promise<T | null> {
 export async function setCache(key: string, value: unknown) {
   try {
     await connect();
-    await redis.set(key, JSON.stringify(value), { EX: 300 });
+    await redis.set(key, JSON.stringify(value), { EX: config.cacheTtlSeconds });
   } catch {
     // Redis è facoltativo per servire la richiesta.
   }

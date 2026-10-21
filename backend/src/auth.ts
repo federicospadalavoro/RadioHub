@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { config } from "./config.js";
 import { createHash, randomBytes } from "node:crypto";
 import { Router, type RequestHandler, type Response } from "express";
 import bcrypt from "bcryptjs";
@@ -10,12 +10,11 @@ export const authRouter = Router();
 const cookieName = "radiohub_refresh";
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure: config.cookieSecure,
   sameSite: "lax" as const,
   path: "/api/auth",
 };
-const refreshDuration =
-  Number(process.env.REFRESH_TOKEN_DAYS ?? 7) * 86_400_000;
+const refreshDuration = config.refreshTokenDays * 86_400_000;
 const hash = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 
@@ -33,7 +32,7 @@ function sessionResponse(
       algorithm: "HS256",
       issuer: "radiohub",
       audience: "radiohub-web",
-      expiresIn: Number(process.env.ACCESS_TOKEN_SECONDS ?? 900),
+      expiresIn: config.accessTokenSeconds,
     }),
     user: { id: user.id, email: user.email },
   };
@@ -88,10 +87,14 @@ authRouter.post("/register", loginLimiter, async (req, res) => {
       return;
     }
     const user = await prisma.user.create({
-      data: { email, passwordHash: await bcrypt.hash(password, 12) },
+      data: {
+        email,
+        passwordHash: await bcrypt.hash(password, config.passwordHashRounds),
+      },
     });
     res.status(201).json(await startSession(res, user));
-  } catch {
+  } catch (error) {
+    res.locals.log.error({ event: "registration_failed", err: error });
     res.status(500).json({ error: "Impossibile completare la registrazione" });
   }
 });
@@ -115,7 +118,8 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
       return;
     }
     res.json(await startSession(res, user));
-  } catch {
+  } catch (error) {
+    res.locals.log.error({ event: "login_failed", err: error });
     res.status(500).json({ error: "Impossibile completare l'accesso" });
   }
 });

@@ -5,7 +5,7 @@ import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default defineConfig({
-  files: ["src/**/*.ts", "test/**/*.ts"],
+  files: ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
   languageOptions: {
     globals: globals.node,
   },

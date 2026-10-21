@@ -18,7 +18,12 @@ describe("interpretRadioSearch", () => {
               content: [
                 {
                   type: "output_text",
-                  text: JSON.stringify({ query: "rock Italia", limit: 3 }),
+                  text: JSON.stringify({
+                    query: "",
+                    limit: 3,
+                    category: 14,
+                    country: "IT",
+                  }),
                 },
               ],
             },
@@ -31,7 +36,7 @@ describe("interpretRadioSearch", () => {
 
     await expect(
       interpretRadioSearch("Vorrei una radio rock italiana"),
-    ).resolves.toEqual({ query: "rock Italia", limit: 3 });
+    ).resolves.toEqual({ query: "", limit: 3, category: 14, country: "IT" });
     expect(fetch).toHaveBeenCalledOnce();
   });
 
