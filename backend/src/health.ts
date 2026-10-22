@@ -30,7 +30,6 @@ async function inspectHealth() {
 
 let pending: ReturnType<typeof inspectHealth> | undefined;
 export function checkHealth() {
-  // Le sonde contemporanee condividono lo stesso controllo, senza accodare query.
   return (pending ??= inspectHealth().finally(() => {
     pending = undefined;
   }));

@@ -46,7 +46,7 @@ export async function setCache(key: string, value: unknown) {
     await connect();
     await redis.set(key, JSON.stringify(value), { EX: config.cacheTtlSeconds });
   } catch {
-    // Redis è facoltativo per servire la richiesta.
+    return;
   }
 }
 
@@ -64,6 +64,6 @@ export async function invalidatePostsCache() {
     await connect();
     await redis.incr("posts:version");
   } catch {
-    // La scadenza evita di mantenere dati obsoleti se Redis non è disponibile.
+    return;
   }
 }

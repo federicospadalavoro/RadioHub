@@ -24,7 +24,8 @@ input {
 }
 button,
 a,
-input {
+input,
+summary {
   -webkit-tap-highlight-color: transparent;
 }
 button {
@@ -921,8 +922,6 @@ button .icon {
     grid-column: 2;
   }
 }
-
-/* Raggi concentrici: raggio esterno = raggio interno + padding. */
 :root {
   --panel-padding: 14px;
   --inner-radius: 22px;
@@ -1444,8 +1443,6 @@ button .icon {
 .auth-dialog .primary-button {
   border-radius: 14px;
 }
-
-/* Spazio controlla la diretta; il focus delle radio resta leggibile senza cornice. */
 .station-select:focus-visible {
   outline: none;
 }
@@ -1747,8 +1744,6 @@ button .icon {
 .news-card .summary-button {
   margin: 12px 0 0 auto;
 }
-
-/* Colori condivisi dalle due modalità. */
 :root {
   color-scheme: light;
   --ink: #101219;
@@ -2600,7 +2595,8 @@ button .icon {
     background: none;
   }
 }
-.theme-toggle:focus:not(:focus-visible) {
+.theme-toggle:focus:not(:focus-visible),
+.account summary:focus:not(:focus-visible) {
   outline: none;
   box-shadow: none;
 }

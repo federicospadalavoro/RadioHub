@@ -1,7 +1,5 @@
 import { config as loadEnv } from "dotenv";
 import { fileURLToPath } from "node:url";
-
-// Funziona sia da src sia da dist, indipendentemente dalla cartella del terminale.
 loadEnv({
   path: fileURLToPath(new URL("../../.env", import.meta.url)),
   quiet: true,

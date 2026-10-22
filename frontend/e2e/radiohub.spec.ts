@@ -36,7 +36,6 @@ test.beforeEach(async ({ context, request }) => {
   expect(
     (await request.delete(`${backend}/__test/fixtures`)).ok(),
   ).toBeTruthy();
-  // I test non dipendono da loghi, stream o API su Internet.
   await context.route("**/*", (route) => {
     const host = new URL(route.request().url()).hostname;
     return ["127.0.0.1", "localhost"].includes(host)
@@ -228,16 +227,22 @@ test("sync → SSE → articolo completo → riassunto al posto del testo", asyn
   expect((await (await request.post("/api/sync")).json()).inserted).toBe(0);
 });
 
-test("link condiviso recupera una radio fuori dal catalogo, senza autoplay", async ({
+test("link condiviso recupera e avvia una radio fuori dal catalogo", async ({
   page,
   isMobile,
 }) => {
   await page.goto("/#radio=999999");
   await expect(station(page, "999999")).toBeVisible();
   await expect(audio(page)).toHaveCount(1);
-  expect(
-    await audio(page).evaluate((element: HTMLAudioElement) => element.paused),
-  ).toBe(true);
+  await expect(page.locator(".app-shell")).not.toHaveClass(/startup-hidden/);
+  await expect
+    .poll(() => page.locator(".player-status").textContent())
+    .toMatch(/In diretta|Tocca play per avviare la radio\./);
+  if (
+    (await page.locator(".player-status").textContent())?.trim() ===
+    "In diretta"
+  )
+    await expectPlaying(page);
   await showPlayer(page, isMobile);
   await expect(
     page.getByRole("heading", { name: "Radio HLS", exact: true }),

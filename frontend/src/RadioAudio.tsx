@@ -82,7 +82,11 @@ export default function RadioAudio({
     if (!streamReady.current) return;
     engineRef.current?.startLoad();
     return audio.current?.play().catch((error: Error) => {
-      if (error.name !== "AbortError" && wantsPlay.current) fail();
+      if (error.name === "NotAllowedError" && wantsPlay.current) {
+        wantsPlay.current = false;
+        setActive(false);
+        setStatus("tap-required");
+      } else if (error.name !== "AbortError" && wantsPlay.current) fail();
     });
   }, [fail, setActive, setStatus]);
 

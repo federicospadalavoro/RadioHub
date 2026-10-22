@@ -1,4 +1,3 @@
--- CreateTable
 CREATE TABLE "Post" (
     "id" TEXT NOT NULL,
     "sourceId" TEXT NOT NULL,
@@ -12,8 +11,6 @@ CREATE TABLE "Post" (
 
     CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
 );
-
--- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -22,8 +19,6 @@ CREATE TABLE "User" (
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
-
--- CreateTable
 CREATE TABLE "Favorite" (
     "userId" TEXT NOT NULL,
     "radioId" TEXT NOT NULL,
@@ -34,15 +29,7 @@ CREATE TABLE "Favorite" (
 
     CONSTRAINT "Favorite_pkey" PRIMARY KEY ("userId","radioId")
 );
-
--- CreateIndex
 CREATE UNIQUE INDEX "Post_sourceId_key" ON "Post"("sourceId");
-
--- CreateIndex
 CREATE INDEX "Post_publishedAt_idx" ON "Post"("publishedAt");
-
--- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
-
--- AddForeignKey
 ALTER TABLE "Favorite" ADD CONSTRAINT "Favorite_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

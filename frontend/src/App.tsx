@@ -70,6 +70,9 @@ export default function App() {
   const [separateFavorites, setSeparateFavorites] = useState(
     () => localStorage.getItem("radiohub-separate-favorites") === "true",
   );
+  const activeMobileView =
+    mobileView === "radios" && separateFavorites ? libraryView : mobileView;
+  const accountMenu = useRef<HTMLDetailsElement>(null);
   const [startupPhase, setStartupPhase] = useState<
     "loading" | "moving" | "done"
   >("loading");
@@ -81,6 +84,9 @@ export default function App() {
   const [catalog, setCatalog] = useState<RadioCatalog | null>(null);
   const [catalogError, setCatalogError] = useState("");
   const [sharedRadio, setSharedRadio] = useState<Radio | null>(null);
+  const [sharedRadioToPlay, setSharedRadioToPlay] = useState<Radio | null>(
+    null,
+  );
   const isPlaying = playbackStatus === "playing";
   function toggleSeparateFavorites() {
     const enabled = !separateFavorites;
@@ -138,6 +144,15 @@ export default function App() {
   } | null>(null);
   const [asking, setAsking] = useState(false);
   const [questionError, setQuestionError] = useState("");
+
+  useEffect(() => {
+    const dismiss = (event: MouseEvent) => {
+      const menu = accountMenu.current;
+      if (menu?.open && !menu.contains(event.target as Node)) menu.open = false;
+    };
+    document.addEventListener("click", dismiss, true);
+    return () => document.removeEventListener("click", dismiss, true);
+  }, []);
 
   useEffect(() => {
     const timers = new Map<HTMLElement, ReturnType<typeof setTimeout>>();
@@ -272,6 +287,7 @@ export default function App() {
         if (signal.aborted) return;
         setSharedRadio(radio);
         dispatch(loadRadio(radio));
+        setSharedRadioToPlay(radio);
       } catch (err) {
         if (!signal.aborted)
           setError(
@@ -286,6 +302,12 @@ export default function App() {
       window.removeEventListener("hashchange", openSharedRadio);
     };
   }, [catalog, dispatch]);
+
+  useEffect(() => {
+    if (startupPhase !== "done" || !sharedRadioToPlay) return;
+    dispatch(startRadio(sharedRadioToPlay));
+    setSharedRadioToPlay(null);
+  }, [dispatch, sharedRadioToPlay, startupPhase]);
 
   useEffect(() => {
     let active = true;
@@ -758,7 +780,7 @@ export default function App() {
             </button>
             <div className="account">
               {userEmail ? (
-                <details>
+                <details ref={accountMenu}>
                   <summary>
                     <span className="avatar">{userEmail[0].toUpperCase()}</span>
                     <span>{userEmail.split("@")[0]}</span>
@@ -811,7 +833,10 @@ export default function App() {
                 playerOpen
               }
             >
-              <div className="library-heading">
+              <div
+                className="library-heading"
+                hidden={visibleFavorites.length > 0}
+              >
                 {(!separateFavorites || query.trim() || player.isMobile) && (
                   <h2 className="list-heading">
                     {separateFavorites && libraryView === "favorites"
@@ -868,7 +893,7 @@ export default function App() {
                     ))}
                   </div>
                 ) : (
-                  displayedRadios.map((radio) => {
+                  displayedRadios.map((radio, index) => {
                     const subtitle = [
                       radio.genre.split(",")[0],
                       radio.area ||
@@ -879,6 +904,13 @@ export default function App() {
                       .join(" · ");
                     return (
                       <Fragment key={`${radio.rank ?? "radio"}-${radio.id}`}>
+                        {visibleFavorites.length > 0 &&
+                          (index === 0 ||
+                            index === visibleFavorites.length) && (
+                            <h2 className="list-heading">
+                              {index === 0 ? "Preferite" : "Le tue radio"}
+                            </h2>
+                          )}
                         <article
                           className={`station-row ${isFavorite(radio.id) ? "station-pinned" : ""} ${activeRadio?.id === radio.id ? "station-selected" : ""}`}
                           data-radio-id={radio.id}
@@ -1295,24 +1327,8 @@ export default function App() {
               ).map(([view, label, icon]) => (
                 <button
                   key={view}
-                  className={
-                    (
-                      view === "favorites"
-                        ? libraryView === "favorites" && mobileView === "radios"
-                        : mobileView === view
-                    )
-                      ? "active"
-                      : ""
-                  }
-                  aria-current={
-                    (
-                      view === "favorites"
-                        ? libraryView === "favorites" && mobileView === "radios"
-                        : mobileView === view
-                    )
-                      ? "page"
-                      : undefined
-                  }
+                  className={activeMobileView === view ? "active" : ""}
+                  aria-current={activeMobileView === view ? "page" : undefined}
                   onClick={() => {
                     if (view === "favorites") {
                       setMobileView("radios");
@@ -1334,11 +1350,7 @@ export default function App() {
                   <Icon
                     name={icon}
                     size={23}
-                    filled={
-                      view === "favorites"
-                        ? libraryView === "favorites" && mobileView === "radios"
-                        : mobileView === view
-                    }
+                    filled={activeMobileView === view}
                   />
                   <span>{label}</span>
                 </button>

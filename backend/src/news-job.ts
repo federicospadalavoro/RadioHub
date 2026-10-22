@@ -14,7 +14,6 @@ export function startNewsSyncJob() {
       logger.error({ event: "news_sync_failed", err: error });
     }
   };
-  // Primo avvio: importa notizie vere soltanto se la tabella è vuota.
   void prisma.post
     .count()
     .then((count) => {

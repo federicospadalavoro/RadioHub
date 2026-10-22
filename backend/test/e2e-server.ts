@@ -1,4 +1,3 @@
-// Backend vero, database temporaneo e sorgenti radio/notizie controllate.
 import express from "express";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";

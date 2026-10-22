@@ -13,8 +13,6 @@ type FmRadio = {
     priority?: number;
   }[];
 };
-
-// Identificativi delle categorie restituiti da FM-World.
 export const radioCategories = {
   3: "Contemporary",
   4: "Thematic",

@@ -140,7 +140,6 @@ authRouter.post("/refresh", async (req, res) => {
     return;
   }
   const nextToken = randomBytes(32).toString("hex");
-  // Un solo rinnovo può consumare il vecchio token, anche con richieste simultanee.
   const rotated = await prisma.refreshSession.updateMany({
     where: {
       id: session.id,

@@ -6,8 +6,6 @@ export type VolumeProps = {
 };
 
 import Icon from "./Icon";
-
-// Safari su iPhone/iPad lascia il livello ai tasti del dispositivo.
 const hardwareVolume =
   /iPhone|iPad|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);

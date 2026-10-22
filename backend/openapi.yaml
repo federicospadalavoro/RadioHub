@@ -20,6 +20,8 @@ paths:
       summary: Verifica backend, PostgreSQL e Redis
       description: Esegue SELECT 1 su PostgreSQL e PING su Redis con timeout SERVICE_TIMEOUT_MS. La risposta non viene memorizzata in cache.
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "200":
           description: Entrambi i servizi rispondono
           content:
@@ -40,6 +42,7 @@ paths:
       summary: Cento radio già disponibili, ordinate per ascolti Audiradio 2025
       description: Catalogo locale con ID e stream verificati. Nazionali e locali sullo stesso periodo annuale; le rilevazioni territoriali distinte mantengono la propria posizione.
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Fonte, periodo, metodo e cento radio ordinate per ascoltatori nel giorno medio
           content:
@@ -80,6 +83,7 @@ paths:
           schema: { type: string, pattern: "^[1-9]\\d{0,14}$" }
           example: "2626"
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Radio con uno stream audio disponibile nei metadati
           content:
@@ -118,6 +122,8 @@ paths:
           in: query
           schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "200":
           description: Radio trovate con stream audio utilizzabile
           content:
@@ -153,6 +159,7 @@ paths:
                 prompt: { type: string, minLength: 1, maxLength: 500 }
             example: { prompt: "Voglio una radio jazz italiana" }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Parametri di ricerca generati
           content:
@@ -196,6 +203,8 @@ paths:
           schema: { type: integer, minimum: 0, default: 0 }
           description: Post da saltare per caricare le pagine successive
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "200":
           description: Notizie ordinate dalla più recente
           headers:
@@ -221,6 +230,7 @@ paths:
           required: true
           schema: { type: string }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Riassunto salvato o appena generato
           content:
@@ -246,6 +256,7 @@ paths:
       summary: Riceve eventi quando vengono importati nuovi post
       description: Connessione Server-Sent Events. Invia eventi `news` e commenti heartbeat.
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Stream di eventi mantenuto aperto
           content:
@@ -273,6 +284,7 @@ paths:
                 question: { type: string, minLength: 1, maxLength: 500 }
             example: { question: "Quali novità ci sono sulla radio?" }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Risposta e notizie usate come fonti
           content:
@@ -287,6 +299,7 @@ paths:
       tags: [Notizie]
       summary: Avvia manualmente la sincronizzazione del feed notizie
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Risultato della sincronizzazione
           content:
@@ -316,8 +329,9 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/Credentials" }
+            schema: { $ref: "#/components/schemas/RegistrationCredentials" }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "201":
           description: Account creato; imposta il cookie HttpOnly per il rinnovo
           headers:
@@ -344,6 +358,7 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/Credentials" }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
         "200":
           description: Accesso riuscito; imposta il cookie HttpOnly per il rinnovo
           headers:
@@ -365,6 +380,8 @@ paths:
       summary: Rinnova il token di accesso usando il cookie di sessione
       security: [{ RefreshCookie: [] }]
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "200":
           description: Token rinnovato e cookie ruotato
           headers:
@@ -384,6 +401,8 @@ paths:
       summary: Chiude la sessione e invalida il cookie di rinnovo
       security: [{ RefreshCookie: [] }]
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "204": { description: Sessione chiusa }
 
   /api/favorites:
@@ -392,6 +411,8 @@ paths:
       summary: Elenca i preferiti dell'utente autenticato
       security: [{ BearerAuth: [] }]
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "200":
           description: Preferiti dell'utente
           content:
@@ -417,6 +438,8 @@ paths:
                 streamUrl: { type: [string, "null"] }
                 logoUrl: { type: [string, "null"] }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "201":
           description: Preferito salvato
           content:
@@ -436,6 +459,8 @@ paths:
           required: true
           schema: { type: string }
       responses:
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "204": { description: Preferito rimosso }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -499,8 +524,7 @@ components:
           {
             type: [string, "null"],
             format: uri,
-            description: Prima immagine del contenuto,
-            quando disponibile,
+            description: "Prima immagine del contenuto, quando disponibile",
           }
         excerpt: { type: string, description: Anteprima testuale della notizia }
     NewsAnswer:
@@ -522,7 +546,22 @@ components:
       required: [email, password]
       properties:
         email: { type: string, format: email }
-        password: { type: string, minLength: 1 }
+        password:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+          description: Massimo 72 byte in UTF-8, verificati dal backend.
+    RegistrationCredentials:
+      allOf:
+        - $ref: "#/components/schemas/Credentials"
+        - type: object
+          properties:
+            password:
+              type: string
+              minLength: 8
+              maxLength: 72
+              description: Almeno 8 caratteri e massimo 72 byte in UTF-8. Il limite in byte è verificato dal backend e può consentire meno di 72 caratteri se sono multibyte.
     Session:
       type: object
       required: [token, user]
@@ -555,6 +594,12 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Origine della richiesta non consentita dalla configurazione CORS.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: "Origine non consentita" }
     TooManyRequests:
       description: Limite di richieste superato
       content:

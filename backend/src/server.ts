@@ -4,8 +4,6 @@ import { startNewsSyncJob } from "./news-job.js";
 import { logger } from "./logger.js";
 import express from "express";
 import { resolve } from "node:path";
-
-// In hosting lo stesso server può servire anche il frontend già compilato.
 if (process.env.STATIC_DIR)
   app.use(express.static(resolve(process.env.STATIC_DIR), { maxAge: 0 }));
 

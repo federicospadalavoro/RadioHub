@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { FmWorldError, normalizeFmWorldRadios } from "../src/fm-world.js";
-
-// Campi rilevanti della risposta reale di FM-World per Radio 105.
 const radio = {
   id: 2626,
   name: "Radio 105",

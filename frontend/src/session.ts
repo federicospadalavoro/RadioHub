@@ -9,7 +9,6 @@ export function saveSession(value: Session | null) {
 
 export function renewSession() {
   if (ending) return Promise.resolve(null);
-  // Le richieste simultanee condividono un solo rinnovo del cookie.
   renewal ??= fetch("/api/auth/refresh", {
     method: "POST",
     credentials: "include",

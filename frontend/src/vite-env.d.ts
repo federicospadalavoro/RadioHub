@@ -1,2 +1,3 @@
-/// <reference types="vite/client" />
-/// <reference types="vite-plugin-pwa/react" />
+import "vite/client";
+import "vite-plugin-pwa/react";
+export {};

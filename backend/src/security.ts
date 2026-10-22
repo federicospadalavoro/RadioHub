@@ -12,8 +12,6 @@ const origins = (
 )
   .split(",")
   .map((origin) => origin.trim());
-
-// In sviluppo il telefono apre Vite con l'indirizzo del Mac nella rete locale.
 if (process.env.NODE_ENV !== "production") {
   const hosts = [
     hostname(),
@@ -27,7 +25,6 @@ if (process.env.NODE_ENV !== "production") {
 
 const checkOrigin: RequestHandler = (req, res, next) => {
   const origin = req.get("origin");
-  // Blocca anche le richieste che scrivono cookie: CORS da solo non lo fa.
   if (
     (origin && !origins.includes(origin)) ||
     (!origin && req.get("sec-fetch-site") === "cross-site")

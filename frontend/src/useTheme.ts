@@ -35,12 +35,12 @@ export default function useTheme() {
   }, []);
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
     try {
       localStorage.setItem(key, next);
     } catch {
-      /* Il tema funziona anche senza salvataggio. */
+      return;
     }
-    setTheme(next);
   }
   return [theme, toggleTheme] as const;
 }

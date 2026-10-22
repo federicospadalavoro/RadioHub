@@ -13,8 +13,6 @@ beforeEach(() => {
   );
 });
 afterEach(() => vi.unstubAllGlobals());
-
-// Nessuna suite può aprire la connessione al database personale.
 vi.mock("../src/prisma.js", () => ({
   prisma: {
     $queryRaw: vi.fn(),

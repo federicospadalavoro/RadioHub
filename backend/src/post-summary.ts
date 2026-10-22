@@ -33,7 +33,6 @@ async function loadSummary(id: string): Promise<Summary | null> {
     .get(sourceId)
     ?.trim();
   if (!summary) throw new SummaryProviderError("Riassunto non disponibile");
-  // Non salvare un riassunto vecchio se il feed è cambiato nel frattempo.
   const saved = await prisma.post.updateMany({
     where: { id, title, content, summary: post.summary },
     data: { summary },

@@ -8,7 +8,6 @@ export const logger = pino({
   base: { service: "radiohub" },
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: { level: (level) => ({ level }) },
-  // I messaggi degli errori possono contenere query, URL con credenziali o input.
   serializers: {
     err: (error: unknown) =>
       error instanceof Error

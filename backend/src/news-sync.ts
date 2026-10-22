@@ -176,7 +176,6 @@ export async function syncNewsFeed() {
       });
     }
     await invalidatePostsCache();
-    // Le vecchie notizie possono non comparire più nella prima pagina del feed.
     await backfillNewsImages().catch((error) =>
       logger.warn({ event: "news_images_failed", err: error }),
     );

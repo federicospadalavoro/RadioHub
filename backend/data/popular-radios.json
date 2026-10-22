@@ -871,24 +871,6 @@
       "streamReachable": true
     },
     {
-      "audienceName": "CICCIO RICCIO",
-      "listeners": 229000,
-      "sourcePage": 5,
-      "rank": 49,
-      "id": "official:ciccioriccio",
-      "name": "Ciccio Riccio",
-      "logo": "https://www.ciccioriccio.it/wp-content/uploads/2020/05/logo_ciccio-300x68.png",
-      "genre": "",
-      "country": "Italy",
-      "streamUrl": "https://stream5.xdevel.com/audio0s975942-758/stream/icecast.audio",
-      "website": "https://www.ciccioriccio.it/",
-      "area": "",
-      "metadataSource": "https://play.xdevel.com/12775",
-      "fmWorldId": null,
-      "streamCheckedAt": "2026-10-19T17:57:50.844Z",
-      "streamReachable": true
-    },
-    {
       "audienceName": "RADIO ROCK",
       "listeners": 214000,
       "sourcePage": 4,
@@ -922,24 +904,6 @@
       "metadataSource": "https://connect.fm-world.com/client2/radios",
       "fmWorldId": "3189",
       "streamCheckedAt": "2026-10-19T17:57:51.317Z",
-      "streamReachable": true
-    },
-    {
-      "audienceName": "DIMENSIONE SUONO SOFT",
-      "listeners": 204000,
-      "sourcePage": 2,
-      "rank": 52,
-      "id": "official:dimensione-suono-soft-nord",
-      "name": "Dimensione Suono Soft Nord",
-      "logo": "https://drr6gieappuhq.cloudfront.net/radio_logo/2528.jpg",
-      "genre": "",
-      "country": "Italy",
-      "streamUrl": "https://icstream.rds.radio/dssn",
-      "website": "https://www.dimensionesuonosoft.it/",
-      "area": "Nord Italia",
-      "metadataSource": "https://www.dimensionesuonosoft.it/wp-content/themes/rds-soft/js/utils.js",
-      "fmWorldId": null,
-      "streamCheckedAt": "2026-10-19T17:57:51.128Z",
       "streamReachable": true
     },
     {
@@ -1048,24 +1012,6 @@
       "metadataSource": "https://connect.fm-world.com/client2/radios",
       "fmWorldId": "3505",
       "streamCheckedAt": "2026-10-19T17:57:51.570Z",
-      "streamReachable": true
-    },
-    {
-      "audienceName": "STUDIO 90 ITALIA SOLO MUSICA ITALIANA",
-      "listeners": 157000,
-      "sourcePage": 5,
-      "rank": 59,
-      "id": "official:studio90italia",
-      "name": "Studio 90 Italia",
-      "logo": "https://www.radiostudio90italia.it/wp-content/uploads/2022/12/logo_studio-1.png",
-      "genre": "",
-      "country": "Italy",
-      "streamUrl": "https://zerounocaststreaming.it:8266/stream",
-      "website": "https://www.radiostudio90italia.it/",
-      "area": "",
-      "metadataSource": "https://www.radiostudio90italia.it/",
-      "fmWorldId": null,
-      "streamCheckedAt": "2026-10-19T17:57:51.981Z",
       "streamReachable": true
     },
     {
@@ -1231,24 +1177,6 @@
       "streamReachable": true
     },
     {
-      "audienceName": "RADIOLINA",
-      "listeners": 132000,
-      "sourcePage": 5,
-      "rank": 69,
-      "id": "official:radiolina",
-      "name": "Radiolina",
-      "logo": "https://radiolina.it/wp-content/uploads/2021/10/Radiolina150x150.png",
-      "genre": "",
-      "country": "Italy",
-      "streamUrl": "https://livestreaming.unionesarda.it/radiolina",
-      "website": "https://radiolina.it/",
-      "area": "Sardegna",
-      "metadataSource": "https://radiolina.it/live/",
-      "fmWorldId": null,
-      "streamCheckedAt": "2026-10-19T17:57:53.312Z",
-      "streamReachable": true
-    },
-    {
       "audienceName": "RADIO PADOVA",
       "listeners": 123000,
       "sourcePage": 3,
@@ -1355,8 +1283,7 @@
       "fmWorldId": "28800",
       "streamCheckedAt": "2026-10-19T18:01:26.298Z",
       "streamReachable": true,
-      "streamCheckMethod": "curl: HTTP 200 audio/mpeg, 541048 bytes received",
-      "streamSource": "https://stream.suedtirol1.it/live/mp3-192/direct/play.m3u"
+      "streamCheckMethod": "curl: HTTP 200 audio/mpeg, 541048 bytes received"
     },
     {
       "audienceName": "ONE DANCE",
@@ -1500,8 +1427,7 @@
       "metadataSource": "https://connect.fm-world.com/client2/radios",
       "fmWorldId": "17",
       "streamCheckedAt": "2026-10-19T17:59:34.193Z",
-      "streamReachable": true,
-      "streamSource": "https://www.radiodelta1.it/"
+      "streamReachable": true
     },
     {
       "audienceName": "RADIO MILLENOTE",
