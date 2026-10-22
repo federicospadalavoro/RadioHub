@@ -239,19 +239,22 @@ button .icon {
   align-items: center;
   padding: 3px;
   border-radius: 99px;
-  background: var(--line);
+  background: #637087;
   transition: background 160ms ease;
 }
 .switch-track > span {
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: var(--surface-solid, #fff);
+  background: #fff;
   box-shadow: 0 1px 3px #0002;
   transition: transform 160ms ease;
 }
 .separate-favorites-toggle[aria-checked="true"] .switch-track {
-  background: var(--accent);
+  background: #0b8058;
+}
+:root[data-theme="dark"] .switch-track {
+  background: #737373;
 }
 .separate-favorites-toggle[aria-checked="true"] .switch-track > span {
   transform: translateX(15px);

@@ -21,6 +21,7 @@ vi.mock("../src/prisma.js", () => ({
       count: vi.fn(),
       findUnique: vi.fn(),
       updateMany: vi.fn(),
+      upsert: vi.fn(),
     },
   },
 }));

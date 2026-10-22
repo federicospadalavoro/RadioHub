@@ -154,7 +154,10 @@ export async function syncNewsFeed() {
         existing.content !== post.content
       );
     });
-    const summaries = await summarizePosts(needsSummary);
+    const summaries = await summarizePosts(needsSummary).catch((error) => {
+      logger.warn({ event: "news_summaries_failed", err: error });
+      return new Map<string, string>();
+    });
 
     for (const post of posts) {
       const existing = existingById.get(post.sourceId);
